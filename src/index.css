@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  /* Chassis / dark surfaces */
+  --chassis: #12100e;
+  --chassis-2: #1b1612;
+  --chassis-3: #26201b;
+  --chassis-edge: #2e2620;
+
+  /* Paper / warm neutral surfaces */
+  --paper: #ece3d1;
+  --paper-2: #e0d5bf;
+  --paper-3: #c9bda4;
+
+  /* Ink */
+  --ink: #0b0907;
+  --ink-2: #322a23;
+  --ink-3: #6b5d4f;
+
+  /* Accent — sodium lamp orange */
+  --amber: #ff7a1a;
+  --amber-2: #ff9a3d;
+  --amber-deep: #c4521b;
+  --amber-shadow: rgba(255, 122, 26, 0.42);
+
+  /* LCD phosphor */
+  --phosphor: #b7f26a;
+  --phosphor-dim: #4b8a2c;
+
+  /* Rule / divider / hairline */
+  --hair: rgba(236, 227, 209, 0.12);
+  --hair-dark: rgba(11, 9, 7, 0.18);
+
+  /* Fonts */
+  --font-display: 'Anton', 'Bricolage Grotesque', sans-serif;
+  --font-body: 'Bricolage Grotesque', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  font-family: var(--font-body);
+  color: var(--paper);
+  line-height: 1.45;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  background-color: var(--chassis);
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, rgba(255, 122, 26, 0.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 30%, rgba(183, 242, 106, 0.06), transparent 55%),
+    radial-gradient(1400px 700px at 50% 110%, rgba(255, 154, 61, 0.08), transparent 55%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*::selection {
+  background: var(--amber);
+  color: var(--chassis);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Chassis noise + grid texture overlay, scoped so it never blocks input */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(236, 227, 209, 0.022) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(0deg, rgba(236, 227, 209, 0.022) 0 1px, transparent 1px 64px);
+  mix-blend-mode: screen;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+button,
+input,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+/* Utility: monospace technical label */
+.tech {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-3);
+}
+
+.tech--amber {
+  color: var(--amber-2);
+}
+
+.tech--ink {
+  color: var(--ink-2);
+}
