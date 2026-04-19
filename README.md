@@ -1,73 +1,130 @@
 # yt-pitch
 
-Responsive full-stack YouTube practice tool built with Vite, React, and Vercel Functions.
+Responsive YouTube practice tool built with a Vite frontend and a dedicated extraction backend.
 
-## What it does
-
-- Accepts a public YouTube URL
-- Pulls metadata and proxy streams through `/api`
-- Plays a muted video preview alongside browser-processed audio
-- Lets you change pitch and tempo independently
-- Exports the processed result as a WAV download
-
-## Stack
+## Architecture
 
 - Frontend: Vite + React + TypeScript
-- Backend: Vercel Functions in `api/`
-- Media lookup: `yt-dlp` standalone binary invoked from Vercel Functions
-- Audio processing: `soundtouchjs`
+- Audio processing: browser-side with `soundtouchjs`
+- Durable backend: self-hosted Node/Express service running `yt-dlp`
+- Cookie refresh flow: local helper script pushes fresh browser cookies to the backend
 
-## Local development
+The backend exists because YouTube extraction from Vercel serverless is not operationally stable. For a small userbase, a single lightweight stateful backend is the pragmatic fix.
 
-Install dependencies:
+## Frontend
+
+Install and run:
 
 ```bash
 npm install
-```
-
-Frontend-only development:
-
-```bash
 npm run dev
 ```
 
-Full-stack development with Vercel Functions:
+Optional frontend env:
+
+- `VITE_API_BASE_URL=https://your-backend.example.com`
+
+Example file: [`.env.example`](./.env.example)
+
+If `VITE_API_BASE_URL` is unset, the frontend still falls back to `/api`.
+
+## Dedicated Backend
+
+The dedicated backend lives in [`backend/`](./backend) and is intended to run outside Vercel.
+
+Install and run locally:
 
 ```bash
-npx vercel dev
+cd backend
+npm install
+npm run dev
 ```
 
-`vercel dev` is the mode that serves both the Vite frontend and the `api/` routes together.
+Environment variables:
 
-## Deploy to Vercel
+- `PORT`: defaults to `8080`
+- `CORS_ORIGIN`: comma-separated allowed origins, or `*`
+- `ADMIN_TOKEN`: required for the cookie admin endpoints
+- `YOUTUBE_COOKIE_FILE`: persistent cookie file path, defaults to `/data/youtube-cookies.txt`
+- `YOUTUBE_COOKIES` or `YOUTUBE_COOKIES_BASE64`: optional bootstrap fallback if no persistent cookie file exists
+- `YT_DLP_EXTRACTOR_ARGS`: optional raw `yt-dlp --extractor-args` value
 
-1. Import the repository into Vercel.
-2. Keep the default install command: `npm install`
-3. Keep the default build command: `npm run build`
-4. Output directory: `dist`
-5. For production reliability, add either `YOUTUBE_COOKIES` or `YOUTUBE_COOKIES_BASE64` as a Vercel environment variable.
+Example file: [`backend/.env.example`](./backend/.env.example)
 
-The app is designed as a Vite SPA with API routes in `/api`.
+Admin endpoints:
 
-### Production YouTube Auth
+- `GET /api/admin/status`
+- `POST /api/admin/cookies`
+- `DELETE /api/admin/cookies`
 
-YouTube often blocks server IPs with `Sign in to confirm you’re not a bot`.
+All admin endpoints require:
 
-This app supports:
+```http
+Authorization: Bearer <ADMIN_TOKEN>
+```
 
-- `YOUTUBE_COOKIES`: full Netscape/Mozilla `cookies.txt` contents
-- `YOUTUBE_COOKIES_BASE64`: base64-encoded `cookies.txt` contents
-- `YT_DLP_EXTRACTOR_ARGS`: optional raw `yt-dlp --extractor-args` value if you also want to pass visitor data or PO token settings
+## Cookie Refresh Workflow
 
-The cookie file must be in Netscape format, which yt-dlp documents here:
-https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp
+The intended operational flow is:
 
-For YouTube-specific export guidance:
-https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies
+1. Run the backend on a small persistent host.
+2. Mount persistent storage at `/data` so the cookie file survives restarts.
+3. Refresh the backend cookies from your local logged-in browser whenever YouTube starts blocking again.
+
+Local helper:
+
+```bash
+npm run push:cookies -- https://your-backend.example.com your-admin-token
+```
+
+This script:
+
+- exports cookies from your local Chrome session using `yt-dlp --cookies-from-browser`
+- trims them to YouTube/Google domains
+- uploads them to `POST /api/admin/cookies`
+
+## Deployment Target
+
+This repo includes a Fly.io example config in [`backend/fly.toml`](./backend/fly.toml).
+
+Why Fly for this backend:
+
+- It supports persistent attached volumes for small stateful apps.
+- Its app config supports mounting volumes directly in `fly.toml`.
+
+Official docs:
+
+- Fly app config and `fly.toml`: https://fly.io/docs/reference/configuration/
+- Fly volumes: https://fly.io/docs/volumes/
+
+The included Fly config mounts a volume at `/data`, which is where the backend stores `youtube-cookies.txt`.
+
+Example deployment flow:
+
+```bash
+brew install flyctl
+flyctl auth login
+cd backend
+flyctl apps create yt-pitch-backend
+flyctl volumes create yt_pitch_data --size 1 --region sin
+flyctl secrets set ADMIN_TOKEN=replace-me CORS_ORIGIN=https://yt-pitch.vercel.app
+flyctl deploy
+cd ..
+npm run push:cookies -- https://yt-pitch-backend.fly.dev replace-me
+vercel env add VITE_API_BASE_URL production
+# value: https://yt-pitch-backend.fly.dev
+vercel deploy --prod --yes
+```
+
+## Current Vercel App
+
+The frontend can still be deployed on Vercel, but the durable extraction path should point at the dedicated backend:
+
+- Frontend: `yt-pitch.vercel.app`
+- Backend: your own stateful host
 
 ## Notes
 
-- Public YouTube videos are the target use case.
-- Export is done in the browser as WAV to avoid depending on ffmpeg in serverless.
-- `npm install` downloads a platform-appropriate `yt-dlp` binary into `bin/`.
-- Very long videos can be memory-heavy on mobile during export.
+- This is more durable than Vercel serverless, but not mathematically permanent. YouTube can still change extraction requirements.
+- The backend design makes cookie refresh an operational task instead of a redeploy task.
+- For a very small userbase, a single backend instance plus persistent cookie storage is a reasonable tradeoff.

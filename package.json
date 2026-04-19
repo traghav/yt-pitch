@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:backend": "npm --prefix backend run dev",
     "dev:vercel": "vercel dev",
     "build": "tsc -b && vite build",
+    "push:cookies": "node ./scripts/push-backend-cookies.mjs",
     "lint": "eslint .",
     "postinstall": "node ./scripts/setup-ytdlp.mjs",
     "preview": "vite preview"

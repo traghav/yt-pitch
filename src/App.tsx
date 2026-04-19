@@ -9,6 +9,7 @@ import {
   sanitizeFileStem,
   type PitchController,
 } from './lib/audio'
+import { buildApiUrl } from './lib/api'
 
 type TrackMetadata = {
   author: string
@@ -47,12 +48,12 @@ function App() {
 
   const audioSrc = useMemo(() => {
     if (!track) return ''
-    return `/api/media?kind=audio&url=${encodeURIComponent(track.canonicalUrl)}`
+    return buildApiUrl(`/api/media?kind=audio&url=${encodeURIComponent(track.canonicalUrl)}`)
   }, [track])
 
   const videoSrc = useMemo(() => {
     if (!track) return ''
-    return `/api/media?kind=video&url=${encodeURIComponent(track.canonicalUrl)}`
+    return buildApiUrl(`/api/media?kind=video&url=${encodeURIComponent(track.canonicalUrl)}`)
   }, [track])
 
   const longTrackWarning = useMemo(() => {
@@ -204,7 +205,7 @@ function App() {
       setTrack(null)
 
       try {
-        const response = await fetch(`/api/metadata?url=${encodeURIComponent(trimmedUrl)}`)
+        const response = await fetch(buildApiUrl(`/api/metadata?url=${encodeURIComponent(trimmedUrl)}`))
         const payload = (await response.json()) as TrackMetadata & { error?: string }
         if (!response.ok) throw new Error(payload.error ?? 'Could not load that link.')
 
